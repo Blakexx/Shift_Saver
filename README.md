@@ -1,6 +1,6 @@
 # shift_saver
 
-Save shift times
+A flutter app made to help people keep track of their work shifts
 
 ## Getting Started
 
