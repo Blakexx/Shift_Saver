@@ -18,6 +18,8 @@ DateTime currentTime;
 
 Timer timer;
 
+bool isDeleting = false;
+
 void main() async{
   currentTime = new DateTime.now().toUtc();
   currentTime = currentTime.subtract(new Duration(seconds:currentTime.second,milliseconds:currentTime.millisecond,microseconds:currentTime.microsecond));
@@ -111,7 +113,17 @@ class AppState extends State<App>{
                 new SliverAppBar(
                     pinned: false,
                     floating: true,
-                    title: new Text("Jobs")
+                    title: new Text("Jobs"),
+                    actions: [
+                      new IconButton(
+                        icon: new Icon(!isDeleting?Icons.delete:Icons.check),
+                        onPressed: (){
+                          setState((){
+                            isDeleting = !isDeleting;
+                          });
+                        }
+                      )
+                    ]
                 ),
                 new SliverList(
                   delegate: new SliverChildBuilderDelegate(
@@ -204,24 +216,101 @@ class JobState extends State<Job>{
           child: new Column(
               children:[
                 new ListTile(
+                  leading: isDeleting?new IconButton(
+                    icon:new Icon(Icons.delete),
+                    onPressed:(){
+                      showDialog(
+                          context: context,
+                          barrierDismissible: true,
+                          builder: (context){
+                            return new AlertDialog(
+                                title:new Text("Are you sure?",style:new TextStyle(fontWeight:FontWeight.bold)),
+                                content:new Text("This job will be permanently deleted."),
+                                actions: [
+                                  new FlatButton(
+                                      child: new Text("No"),
+                                      onPressed: (){
+                                        Navigator.of(context).pop();
+                                      }
+                                  ),
+                                  new FlatButton(
+                                      child: new Text("Yes"),
+                                      onPressed: () async{
+                                        jobShiftData.remove(widget.jobTitle);
+                                        jobsInfo.remove(widget.jobTitle);
+                                        jobsDataGetters.remove(widget.jobTitle);
+                                        jobsInfoData.writeData(jobsInfo);
+                                        new Directory("$appDirectory/${widget.jobTitle}").delete(recursive: true);
+                                        context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
+                                        Navigator.of(context).pop();
+                                      }
+                                  )
+                                ]
+                            );
+                          }
+                      );
+                    }
+                  ):null,
                   title: new Text(widget.jobTitle,style:new TextStyle(fontWeight: FontWeight.bold)),
                   trailing: new IconButton(
                       icon: new Icon(Icons.add_circle_outline),
                       onPressed: (){
-                        String shiftName = "shiftOne";
-                        if(jobShiftData[widget.jobTitle][shiftName]==null){
-                          jobShiftData[widget.jobTitle][shiftName] = {"startTime":1,"endTime":100};
-                          jobsDataGetters[widget.jobTitle][shiftName] = new PersistentData("${widget.jobTitle}/$shiftName.txt");
-                          jobsDataGetters[widget.jobTitle][shiftName].writeData(jobShiftData[widget.jobTitle][shiftName]);
-                          jobsInfo[widget.jobTitle]["scheduledShifts"]++;
-                          jobsInfoData.writeData(jobsInfo);
-                          this.setState((){});
-                        }
+                        String shiftName = "";
+                        bool pressed = false;
+                        showDialog(
+                            context: context,
+                            barrierDismissible: true,
+                            builder: (context){
+                              return new AlertDialog(
+                                  title: new Text("New Shift",style:new TextStyle(fontWeight:FontWeight.bold)),
+                                  content:new TextField(
+                                    onChanged:(st){
+                                      shiftName = st;
+                                    },
+                                    decoration: new InputDecoration(
+                                      labelText: "Shift Title",
+                                      contentPadding: EdgeInsets.only(right:8.0,bottom:8.0)
+                                    ),
+                                  ),
+                                  actions: [
+                                    new FlatButton(
+                                        child: new Text("Submit"),
+                                        onPressed: () async{
+                                          if(pressed){
+                                            return;
+                                          }
+                                          pressed = true;
+                                          if(shiftName!=null&&shiftName.length>0&&jobShiftData[widget.jobTitle][shiftName]==null){
+                                            jobShiftData[widget.jobTitle][shiftName] = {"startTime":1,"endTime":100};
+                                            jobsDataGetters[widget.jobTitle][shiftName] = new PersistentData("${widget.jobTitle}/$shiftName.txt");
+                                            jobsDataGetters[widget.jobTitle][shiftName].writeData(jobShiftData[widget.jobTitle][shiftName]);
+                                            jobsInfo[widget.jobTitle]["scheduledShifts"]++;
+                                            jobsInfoData.writeData(jobsInfo);
+                                            this.setState((){});
+                                            Navigator.of(context).pop();
+                                          }
+                                        }
+                                    )
+                                  ]
+                              );
+                            }
+                        );
                       }
                   )
                 ),
                 new Column(
                   children:jobShiftData[widget.jobTitle].keys.map((shiftTitle)=>new ListTile(
+                      leading: isDeleting?new IconButton(
+                          icon:new Icon(Icons.delete),
+                          onPressed:(){
+                            jobShiftData[widget.jobTitle].remove(shiftTitle);
+                            jobsDataGetters[widget.jobTitle].remove(shiftTitle);
+                            jobsInfo[widget.jobTitle]["scheduledShifts"]--;
+                            jobsInfoData.writeData(jobsInfo);
+                            new File("$appDirectory/${widget.jobTitle}/$shiftTitle.txt").delete(recursive: true);
+                            context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
+                          }
+                      ):null,
                     title:new Text(shiftTitle),
                     subtitle:new Text(jobShiftData[widget.jobTitle][shiftTitle]["startTime"].toString()+"-"+jobShiftData[widget.jobTitle][shiftTitle]["endTime"].toString())
                   )).cast<Widget>().toList()
