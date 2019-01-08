@@ -208,10 +208,11 @@ class JobState extends State<Job>{
                   trailing: new IconButton(
                       icon: new Icon(Icons.add_circle_outline),
                       onPressed: (){
-                        if(jobShiftData[widget.jobTitle]["jobOne"]==null){
-                          jobShiftData[widget.jobTitle]["jobOne"] = {"time":"1"};
-                          jobsDataGetters[widget.jobTitle]["jobOne"] = new PersistentData("${widget.jobTitle}/jobOne.txt");
-                          jobsDataGetters[widget.jobTitle]["jobOne"].writeData(jobShiftData[widget.jobTitle]["jobOne"]);
+                        String shiftName = "shiftOne";
+                        if(jobShiftData[widget.jobTitle][shiftName]==null){
+                          jobShiftData[widget.jobTitle][shiftName] = {"startTime":1,"endTime":100};
+                          jobsDataGetters[widget.jobTitle][shiftName] = new PersistentData("${widget.jobTitle}/$shiftName.txt");
+                          jobsDataGetters[widget.jobTitle][shiftName].writeData(jobShiftData[widget.jobTitle][shiftName]);
                           jobsInfo[widget.jobTitle]["scheduledShifts"]++;
                           jobsInfoData.writeData(jobsInfo);
                           this.setState((){});
@@ -222,7 +223,7 @@ class JobState extends State<Job>{
                 new Column(
                   children:jobShiftData[widget.jobTitle].keys.map((shiftTitle)=>new ListTile(
                     title:new Text(shiftTitle),
-                    subtitle:new Text(jobShiftData[widget.jobTitle][shiftTitle]["time"].toString())
+                    subtitle:new Text(jobShiftData[widget.jobTitle][shiftTitle]["startTime"].toString()+"-"+jobShiftData[widget.jobTitle][shiftTitle]["endTime"].toString())
                   )).cast<Widget>().toList()
                 )
               ]
