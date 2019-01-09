@@ -192,6 +192,7 @@ class NewJobPageState extends State<NewJobPage>{
               inputData["moneyEarned"] = 0.0;
               inputData["minutesWorked"] = 0;
               inputData["scheduledShifts"] = 0;
+              inputData["salary"] = 0.0;
               jobsInfo[inputData["jobTitle"]] = inputData;
               new Directory("$appDirectory/${inputData["jobTitle"]}")..createSync(recursive: true);
               jobShiftData[inputData["jobTitle"]] = new Map<String,dynamic>();
@@ -266,7 +267,7 @@ class JobState extends State<Job>{
                       icon: new Icon(Icons.add_circle_outline),
                       onPressed: (){
                         int startTime = currentTime.toUtc().millisecondsSinceEpoch;
-                        int endTime = (currentTime.toUtc().millisecondsSinceEpoch+1000*60*20);
+                        int endTime = (currentTime.toUtc().millisecondsSinceEpoch+1000*60*2);
                         String shiftName = startTime.toString()+"-"+endTime.toString();
                         bool pressed = false;
                         showDialog(
@@ -324,21 +325,78 @@ class JobState extends State<Job>{
                         leading: isDeleting?new IconButton(
                             icon:new Icon(Icons.delete),
                             onPressed:(){
-                              jobShiftData[widget.jobTitle].remove(shiftTitle);
-                              jobsDataGetters[widget.jobTitle].remove(shiftTitle);
-                              jobsInfo[widget.jobTitle]["scheduledShifts"]--;
-                              jobsInfoData.writeData(jobsInfo);
-                              new File("$appDirectory/${widget.jobTitle}/$shiftTitle.txt").delete(recursive: true);
-                              context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
+                              int minutesWorked = new DateTime.fromMillisecondsSinceEpoch(max(startTime,min(endTime,currentTime.millisecondsSinceEpoch))).difference(new DateTime.fromMillisecondsSinceEpoch(startTime)).inMinutes;
+                              if(minutesWorked>0){
+                                showDialog(
+                                    context: context,
+                                    barrierDismissible: true,
+                                    builder: (context){
+                                      return new AlertDialog(
+                                          title:new Text("Cancel Shift",style:new TextStyle(fontWeight:FontWeight.bold)),
+                                          content:new Text("Would you like to add the money you have earned so far to your savings?"),
+                                          actions: [
+                                            new FlatButton(
+                                                child: new Text("No"),
+                                                onPressed: (){
+                                                  jobShiftData[widget.jobTitle].remove(shiftTitle);
+                                                  jobsDataGetters[widget.jobTitle].remove(shiftTitle);
+                                                  jobsInfo[widget.jobTitle]["scheduledShifts"]--;
+                                                  jobsInfoData.writeData(jobsInfo);
+                                                  new File("$appDirectory/${widget.jobTitle}/$shiftTitle.txt").delete(recursive: true);
+                                                  context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
+                                                  Navigator.of(context).pop();
+                                                }
+                                            ),
+                                            new FlatButton(
+                                                child: new Text("Yes"),
+                                                onPressed: () async{
+                                                  jobsInfo[widget.jobTitle]["minutesWorked"]+=minutesWorked;
+                                                  jobsInfo[widget.jobTitle]["moneyEarned"]+=(jobsInfo[widget.jobTitle]["salary"]/60.0)*minutesWorked;
+                                                  jobShiftData[widget.jobTitle].remove(shiftTitle);
+                                                  jobsDataGetters[widget.jobTitle].remove(shiftTitle);
+                                                  jobsInfo[widget.jobTitle]["scheduledShifts"]--;
+                                                  jobsInfoData.writeData(jobsInfo);
+                                                  new File("$appDirectory/${widget.jobTitle}/$shiftTitle.txt").delete(recursive: true);
+                                                  context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
+                                                  Navigator.of(context).pop();
+                                                }
+                                            )
+                                          ]
+                                      );
+                                    }
+                                );
+                              }else{
+                                jobShiftData[widget.jobTitle].remove(shiftTitle);
+                                jobsDataGetters[widget.jobTitle].remove(shiftTitle);
+                                jobsInfo[widget.jobTitle]["scheduledShifts"]--;
+                                jobsInfoData.writeData(jobsInfo);
+                                new File("$appDirectory/${widget.jobTitle}/$shiftTitle.txt").delete(recursive: true);
+                                context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
+                              }
                             }
                         ):null,
                         title:new Text(startString+" - "+endString),
                         subtitle:new Row(
                             children: [
-                              new Expanded(child:new Container(height:5.0,child:new LinearProgressIndicator(value:percentDone))),
-                              new Text(" "+(percentDone*100).round().toStringAsFixed(0)+"%")
+                              new Expanded(child:new Container(height:5.0,child:new LinearProgressIndicator(value:percentDone,valueColor: new AlwaysStoppedAnimation<Color>(percentDone==1.0?Colors.green:Colors.blue)))),
+                              new Container(height:16.0,width:40.0,child:new FittedBox(fit:BoxFit.fitHeight,alignment: Alignment.centerRight,child:new Text((100*percentDone).floor().toStringAsFixed(0)+"%")))
                             ]
-                        )
+                        ),
+                        trailing: percentDone==1.0?new IconButton(
+                          icon: new Icon(Icons.check_circle_outline),
+                          color: Colors.green,
+                          onPressed: (){
+                            int minutesWorked = new DateTime.fromMillisecondsSinceEpoch(endTime).difference(new DateTime.fromMillisecondsSinceEpoch(startTime)).inMinutes;
+                            jobsInfo[widget.jobTitle]["minutesWorked"]+=minutesWorked;
+                            jobsInfo[widget.jobTitle]["moneyEarned"]+=(jobsInfo[widget.jobTitle]["salary"]/60.0)*minutesWorked;
+                            jobsInfo[widget.jobTitle]["scheduledShifts"]--;
+                            jobsInfoData.writeData(jobsInfo);
+                            jobShiftData[widget.jobTitle].remove(shiftTitle);
+                            jobsDataGetters[widget.jobTitle].remove(shiftTitle);
+                            new File("$appDirectory/${widget.jobTitle}/$shiftTitle.txt").delete(recursive: true);
+                            this.setState((){});
+                          }
+                        ):null
                     );
                   }).cast<Widget>().toList()
                 )
