@@ -106,42 +106,55 @@ class AppState extends State<App>{
     return new MaterialApp(
       home: new Builder(
         builder: (context)=>new Scaffold(
-          floatingActionButton: new FloatingActionButton(
-              onPressed: (){
-                Navigator.push(context,new MaterialPageRoute(builder:(context)=>new NewJobPage()));
-              },
-              child: new Icon(Icons.add)
-          ),
-          body: new CustomScrollView(
-              slivers: [
-                new SliverAppBar(
-                    pinned: false,
-                    floating: true,
-                    title: new Text("Jobs"),
-                    actions: [
-                      new IconButton(
-                        icon: new Icon(!isDeleting?Icons.delete:Icons.check),
-                        onPressed: (){
-                          setState((){
-                            isDeleting = !isDeleting;
-                          });
-                        }
-                      )
-                    ],
-                  backgroundColor:new Color.fromRGBO(65,65,65,1.0)
-                ),
-                new SliverPadding(
-                  sliver: new SliverStaggeredGrid.countBuilder(
-                    crossAxisCount: (MediaQuery.of(context).size.width/500.0).ceil(),
-                    mainAxisSpacing: 0.0,
-                    crossAxisSpacing: 0.0,
-                    itemCount:jobsCount,
-                    itemBuilder: (BuildContext context, int i)=>new Job(jobs[i]),
-                    staggeredTileBuilder:(i)=>new StaggeredTile.fit(1),
-                  ),
-                  padding:EdgeInsets.only(top:5.0,right:5.0,left:5.0)
-                )
-              ]
+          body:new Stack(
+            children: [
+              new CustomScrollView(
+                  slivers: [
+                    new SliverAppBar(
+                        pinned: false,
+                        floating: true,
+                        title: new Text("Jobs"),
+                        actions: [
+                          new IconButton(
+                              icon: new Icon(!isDeleting?Icons.delete:Icons.check),
+                              onPressed: (){
+                                setState((){
+                                  isDeleting = !isDeleting;
+                                });
+                              }
+                          )
+                        ],
+                        backgroundColor:new Color.fromRGBO(65,65,65,1.0)
+                    ),
+                    new SliverList(
+                        delegate: new SliverChildBuilderDelegate((context,i)=>new Padding(padding:EdgeInsets.only(left:5.0,right:5.0,top:5.0),child:new Card(child:new Container(color:Colors.grey[300],child:new ListTile(title:new Text("New Job",style:new TextStyle(fontWeight: FontWeight.bold)),trailing:new IconButton(
+                          icon: new Icon(Icons.add_circle_outline),
+                          onPressed:(){
+                            Navigator.push(context,new MaterialPageRoute(builder:(context)=>new NewJobPage()));
+                          }
+                        ),onTap:(){
+                          Navigator.push(context,new MaterialPageRoute(builder:(context)=>new NewJobPage()));
+                        })))),childCount:1)
+                    ),
+                    new SliverPadding(
+                        sliver: new SliverStaggeredGrid.countBuilder(
+                          crossAxisCount: (MediaQuery.of(context).size.width/500.0).ceil(),
+                          mainAxisSpacing: 0.0,
+                          crossAxisSpacing: 0.0,
+                          itemCount:jobsCount,
+                          itemBuilder: (BuildContext context, int i)=>new Job(jobs[i]),
+                          staggeredTileBuilder:(i)=>new StaggeredTile.fit(1),
+                        ),
+                        padding:EdgeInsets.only(top:5.0,right:5.0,left:5.0,bottom:5.0)
+                    )
+                  ]
+              ),
+              new Container(
+                height: MediaQuery.of(context).padding.top,
+                width: double.infinity,
+                color:new Color.fromRGBO(65,65,65,1.0)
+              )
+            ]
           )
         )
       ),
@@ -226,7 +239,10 @@ class NewJobPageState extends State<NewJobPage>{
 class NumberInputFormatter extends TextInputFormatter{
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue){
-    return newValue.copyWith(text:newValue.text.replaceAll(new RegExp("[^0-9]"), ""));
+    if(oldValue.text.contains(".")&&(oldValue.text.replaceAll(new RegExp("[^\.]"), "").length<newValue.text.replaceAll(new RegExp("[^\.]"), "").length)){
+      return oldValue;
+    }
+    return newValue.copyWith(text:newValue.text.replaceAll(new RegExp("[^0-9\.]"), ""));
   }
 }
 
@@ -358,6 +374,7 @@ class JobState extends State<Job>{
                     String endString = getHourMin(endTime);
                     double percentDone = (currentTime.millisecondsSinceEpoch-startTime)/(endTime-startTime);
                     percentDone = max(0.0,min(percentDone,1.0));
+                    int mins = new DateTime.fromMillisecondsSinceEpoch(max(startTime,min(endTime,currentTime.millisecondsSinceEpoch))).difference(new DateTime.fromMillisecondsSinceEpoch(startTime)).inMinutes;
                     return new ListTile(
                         title:new Text(startString+" - "+endString),
                         subtitle:new Row(
@@ -366,7 +383,7 @@ class JobState extends State<Job>{
                               new Container(height:16.0,width:40.0,child:new FittedBox(fit:BoxFit.fitHeight,alignment: Alignment.centerRight,child:new Text((100*percentDone).floor().toStringAsFixed(0)+"%")))
                             ]
                         ),
-                        trailing: isDeleting?new IconButton(
+                        trailing:isDeleting?new IconButton(
                             icon:new Icon(Icons.delete),
                             onPressed:(){
                               int minutesWorked = new DateTime.fromMillisecondsSinceEpoch(max(startTime,min(endTime,currentTime.millisecondsSinceEpoch))).difference(new DateTime.fromMillisecondsSinceEpoch(startTime)).inMinutes;
@@ -436,7 +453,7 @@ class JobState extends State<Job>{
                             new File("$appDirectory/${widget.jobTitle}/$shiftTitle.txt").delete(recursive: true);
                             this.setState((){});
                           }
-                        ):null
+                        ):new Container(height:17.0,width:48.0,child:new Center(child:new FittedBox(fit:BoxFit.fitHeight,alignment: Alignment.centerRight,child:new Text("\$"+new NumberFormat.compact().format(((jobsInfo[widget.jobTitle]["salary"]/60.0)*mins))))))
                     );
                   }).cast<Widget>().toList()
                 )
