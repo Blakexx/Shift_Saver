@@ -6,6 +6,7 @@ import "dart:async";
 import "dart:math";
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 
 PersistentData jobsInfoData = new PersistentData("jobsList.txt");
 
@@ -175,39 +176,46 @@ class NewJobPageState extends State<NewJobPage>{
           new TextField(
             onChanged: (s){
               inputData["jobTitle"] = s;
-            },
+            }
           ),
           new TextField(
             onChanged: (s){
               inputData["salary"] = double.parse(s);
             },
+            inputFormatters: [new NumberInputFormatter()],
           ),
-          new RaisedButton(
-            onPressed: () async{
-              if(clickedSubmit){
-                return;
-              }
-              if(inputData.keys.length<1||inputData.containsValue("")||inputData.containsValue(null)){
-                return;
-              }
-              if(jobsInfo.keys.map((s)=>s.toUpperCase()).contains(inputData["jobTitle"].toUpperCase())){
-                return;
-              }
-              clickedSubmit = true;
-              inputData["shiftsWorked"] = 0;
-              inputData["moneyEarned"] = 0.0;
-              inputData["minutesWorked"] = 0;
-              inputData["scheduledShifts"] = 0;
-              jobsInfo[inputData["jobTitle"]] = inputData;
-              new Directory("$appDirectory/${inputData["jobTitle"]}")..createSync(recursive: true);
-              jobShiftData[inputData["jobTitle"]] = new Map<String,dynamic>();
-              jobsDataGetters[inputData["jobTitle"]] = new Map<String,PersistentData>();
-              inputData.remove("jobTitle");
-              await jobsInfoData.writeData(jobsInfo);
-              context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
-              Navigator.of(context).pop();
-            },
-            child: new Text("Submit")
+          new Builder(
+            builder: (context)=>new RaisedButton(
+                onPressed: () async{
+                  if(clickedSubmit){
+                    return;
+                  }
+                  if(inputData.keys.length<2||inputData.containsValue("")||inputData.containsValue(null)){
+                    Scaffold.of(context).removeCurrentSnackBar();
+                    Scaffold.of(context).showSnackBar(new SnackBar(duration: new Duration(milliseconds:750),content:new Text("Please complete all fields")));
+                    return;
+                  }
+                  if(jobsInfo.keys.map((s)=>s.toUpperCase()).contains(inputData["jobTitle"].toUpperCase())){
+                    Scaffold.of(context).removeCurrentSnackBar();
+                    Scaffold.of(context).showSnackBar(new SnackBar(duration: new Duration(milliseconds:750),content:new Text("Job already exists")));
+                    return;
+                  }
+                  clickedSubmit = true;
+                  inputData["shiftsWorked"] = 0;
+                  inputData["moneyEarned"] = 0.0;
+                  inputData["minutesWorked"] = 0;
+                  inputData["scheduledShifts"] = 0;
+                  jobsInfo[inputData["jobTitle"]] = inputData;
+                  new Directory("$appDirectory/${inputData["jobTitle"]}")..createSync(recursive: true);
+                  jobShiftData[inputData["jobTitle"]] = new Map<String,dynamic>();
+                  jobsDataGetters[inputData["jobTitle"]] = new Map<String,PersistentData>();
+                  inputData.remove("jobTitle");
+                  await jobsInfoData.writeData(jobsInfo);
+                  context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
+                  Navigator.of(context).pop();
+                },
+                child: new Text("Submit")
+            )
           )
         ]
       )
@@ -215,8 +223,16 @@ class NewJobPageState extends State<NewJobPage>{
   }
 }
 
+class NumberInputFormatter extends TextInputFormatter{
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue){
+    return newValue.copyWith(text:newValue.text.replaceAll(new RegExp("[^0-9]"), ""));
+  }
+}
+
+
 class Job extends StatefulWidget{
-  String jobTitle;
+  final String jobTitle;
   Job(this.jobTitle);
   @override
   JobState createState()=>new JobState();
@@ -227,20 +243,22 @@ class JobState extends State<Job>{
   Widget build(BuildContext context){
     List shiftList = new List.from(jobShiftData[widget.jobTitle].keys.toList());
     shiftList.sort((o1,o2){
-      int startDiff = (jobShiftData[widget.jobTitle][o2]["startTime"]-jobShiftData[widget.jobTitle][o1]["startTime"]);
+      int startDiff = (jobShiftData[widget.jobTitle][o1]["startTime"]-jobShiftData[widget.jobTitle][o2]["startTime"]);
       if(startDiff!=0){
         return startDiff;
       }else{
         return (jobShiftData[widget.jobTitle][o1]["endTime"]-jobShiftData[widget.jobTitle][o2]["endTime"]);
       }
     });
+    int hoursWorked = (jobsInfo[widget.jobTitle]["minutesWorked"]/60).floor();
+    int minutesWorked = (jobsInfo[widget.jobTitle]["minutesWorked"]%60);
     return new Center(
         child: new Card(
           child: new Column(
               children:[
                 new ListTile(
                   title: new Padding(padding:EdgeInsets.only(top:5.0),child:new Text(widget.jobTitle,style:new TextStyle(fontWeight: FontWeight.bold))),
-                  subtitle: new Padding(padding:EdgeInsets.only(bottom:5.0),child:new Text("\$${new NumberFormat.compact().format(jobsInfo[widget.jobTitle]["salary"])}/hr • \$${new NumberFormat.compact().format(jobsInfo[widget.jobTitle]["moneyEarned"])} earned\n${(jobsInfo[widget.jobTitle]["minutesWorked"]/60).floor()} hrs ${(jobsInfo[widget.jobTitle]["minutesWorked"]%60).floor()} mins worked")),
+                  subtitle: new Padding(padding:EdgeInsets.only(bottom:5.0),child:new Text("\$${new NumberFormat.compact().format(jobsInfo[widget.jobTitle]["salary"])}/hr • \$${new NumberFormat.compact().format(jobsInfo[widget.jobTitle]["moneyEarned"])} earned\n$hoursWorked hr${hoursWorked==1?"":"s"} $minutesWorked min${minutesWorked==1?"":"s"} worked")),
                   trailing: new IconButton(
                       icon: new Icon(!isDeleting?Icons.add_circle_outline:Icons.delete),
                       onPressed: (){
