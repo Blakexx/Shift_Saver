@@ -126,7 +126,8 @@ class AppState extends State<App>{
                           });
                         }
                       )
-                    ]
+                    ],
+                  backgroundColor:new Color.fromRGBO(65,65,65,1.0)
                 ),
                 new SliverPadding(
                   sliver: new SliverStaggeredGrid.countBuilder(
@@ -168,12 +169,17 @@ class NewJobPageState extends State<NewJobPage>{
   @override
   Widget build(BuildContext context){
     return new Scaffold(
-      appBar: new AppBar(title:new Text("New Job")),
+      appBar: new AppBar(title:new Text("New Job"),backgroundColor: new Color.fromRGBO(65,65,65,1.0)),
       body: new ListView(
         children: [
           new TextField(
             onChanged: (s){
               inputData["jobTitle"] = s;
+            },
+          ),
+          new TextField(
+            onChanged: (s){
+              inputData["salary"] = double.parse(s);
             },
           ),
           new RaisedButton(
@@ -192,7 +198,6 @@ class NewJobPageState extends State<NewJobPage>{
               inputData["moneyEarned"] = 0.0;
               inputData["minutesWorked"] = 0;
               inputData["scheduledShifts"] = 0;
-              inputData["salary"] = 1000000;
               jobsInfo[inputData["jobTitle"]] = inputData;
               new Directory("$appDirectory/${inputData["jobTitle"]}")..createSync(recursive: true);
               jobShiftData[inputData["jobTitle"]] = new Map<String,dynamic>();
@@ -221,7 +226,14 @@ class JobState extends State<Job>{
   @override
   Widget build(BuildContext context){
     List shiftList = new List.from(jobShiftData[widget.jobTitle].keys.toList());
-    shiftList.sort((o1,o2)=>(jobShiftData[widget.jobTitle][o2]["startTime"]-jobShiftData[widget.jobTitle][o1]["startTime"]) as int);
+    shiftList.sort((o1,o2){
+      int startDiff = (jobShiftData[widget.jobTitle][o2]["startTime"]-jobShiftData[widget.jobTitle][o1]["startTime"]);
+      if(startDiff!=0){
+        return startDiff;
+      }else{
+        return (jobShiftData[widget.jobTitle][o1]["endTime"]-jobShiftData[widget.jobTitle][o2]["endTime"]);
+      }
+    });
     return new Center(
         child: new Card(
           child: new Column(
@@ -296,7 +308,7 @@ class JobState extends State<Job>{
                                             }
                                             pressed = true;
                                             int startTime = currentTime.toUtc().millisecondsSinceEpoch;
-                                            int endTime = (currentTime.toUtc().millisecondsSinceEpoch+1000*60*3);
+                                            int endTime = (currentTime.toUtc().millisecondsSinceEpoch+1000*60*2);
                                             String shiftName = startTime.toString()+"-"+endTime.toString();
                                             if(!jobShiftData[widget.jobTitle].keys.map((s)=>s.toUpperCase()).contains(shiftName.toUpperCase())){
                                               jobShiftData[widget.jobTitle][shiftName] = {"startTime":startTime,"endTime":endTime};
@@ -368,6 +380,7 @@ class JobState extends State<Job>{
                                                   minutesWorked = new DateTime.fromMillisecondsSinceEpoch(max(startTime,min(endTime,currentTime.millisecondsSinceEpoch))).difference(new DateTime.fromMillisecondsSinceEpoch(startTime)).inMinutes;
                                                   jobsInfo[widget.jobTitle]["minutesWorked"]+=minutesWorked;
                                                   jobsInfo[widget.jobTitle]["moneyEarned"]+=(jobsInfo[widget.jobTitle]["salary"]/60.0)*minutesWorked;
+                                                  jobsInfo[widget.jobTitle]["moneyEarned"] = double.parse(jobsInfo[widget.jobTitle]["moneyEarned"].toStringAsFixed(2));
                                                   jobShiftData[widget.jobTitle].remove(shiftTitle);
                                                   jobsDataGetters[widget.jobTitle].remove(shiftTitle);
                                                   jobsInfo[widget.jobTitle]["scheduledShifts"]--;
@@ -397,6 +410,7 @@ class JobState extends State<Job>{
                             int minutesWorked = new DateTime.fromMillisecondsSinceEpoch(endTime).difference(new DateTime.fromMillisecondsSinceEpoch(startTime)).inMinutes;
                             jobsInfo[widget.jobTitle]["minutesWorked"]+=minutesWorked;
                             jobsInfo[widget.jobTitle]["moneyEarned"]+=(jobsInfo[widget.jobTitle]["salary"]/60.0)*minutesWorked;
+                            jobsInfo[widget.jobTitle]["moneyEarned"] = double.parse(jobsInfo[widget.jobTitle]["moneyEarned"].toStringAsFixed(2));
                             jobsInfo[widget.jobTitle]["scheduledShifts"]--;
                             jobsInfoData.writeData(jobsInfo);
                             jobShiftData[widget.jobTitle].remove(shiftTitle);
