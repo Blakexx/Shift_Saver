@@ -130,10 +130,126 @@ class AppState extends State<App>{
                         delegate: new SliverChildBuilderDelegate((context,i)=>new Padding(padding:EdgeInsets.only(left:5.0,right:5.0,top:5.0),child:new Card(child:new Container(color:Colors.grey[300],child:new ListTile(title:new Text("New Job",style:new TextStyle(fontWeight: FontWeight.bold)),trailing:new IconButton(
                           icon: new Icon(Icons.add_circle_outline),
                           onPressed:(){
-                            Navigator.push(context,new MaterialPageRoute(builder:(context)=>new NewJobPage()));
+                            bool pressed = false;
+                            Map<String,dynamic> inputData = new Map<String,dynamic>();
+                            showDialog(
+                                context: context,
+                                barrierDismissible: true,
+                                builder: (context){
+                                  return new AlertDialog(
+                                      title: new Text("New Job",style:new TextStyle(fontWeight:FontWeight.bold)),
+                                      content: new Column(
+                                          children: [
+                                            new TextField(
+                                                onChanged: (s){
+                                                  inputData["jobTitle"] = s;
+                                                }
+                                            ),
+                                            new TextField(
+                                              onChanged: (s){
+                                                inputData["salary"] = double.parse(s);
+                                              },
+                                              inputFormatters: [new NumberInputFormatter()],
+                                            )
+                                          ]
+                                      ),
+                                      actions: [
+                                        new FlatButton(
+                                            child: new Text("Submit"),
+                                            onPressed: () async{
+                                              if(pressed){
+                                                return;
+                                              }
+                                              if(inputData.keys.length<2||inputData.containsValue("")||inputData.containsValue(null)){
+                                                Scaffold.of(context).removeCurrentSnackBar();
+                                                Scaffold.of(context).showSnackBar(new SnackBar(duration: new Duration(milliseconds:750),content:new Text("Please complete all fields")));
+                                                return;
+                                              }
+                                              if(jobsInfo.keys.map((s)=>s.toUpperCase()).contains(inputData["jobTitle"].toUpperCase())){
+                                                Scaffold.of(context).removeCurrentSnackBar();
+                                                Scaffold.of(context).showSnackBar(new SnackBar(duration: new Duration(milliseconds:750),content:new Text("Job already exists")));
+                                                return;
+                                              }
+                                              pressed = true;
+                                              inputData["shiftsWorked"] = 0;
+                                              inputData["moneyEarned"] = 0.0;
+                                              inputData["minutesWorked"] = 0;
+                                              inputData["scheduledShifts"] = 0;
+                                              jobsInfo[inputData["jobTitle"]] = inputData;
+                                              new Directory("$appDirectory/${inputData["jobTitle"]}")..createSync(recursive: true);
+                                              jobShiftData[inputData["jobTitle"]] = new Map<String,dynamic>();
+                                              jobsDataGetters[inputData["jobTitle"]] = new Map<String,PersistentData>();
+                                              inputData.remove("jobTitle");
+                                              await jobsInfoData.writeData(jobsInfo);
+                                              context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
+                                              Navigator.of(context).pop();
+                                            }
+                                        )
+                                      ]
+                                  );
+                                }
+                            );
                           }
                         ),onTap:(){
-                          Navigator.push(context,new MaterialPageRoute(builder:(context)=>new NewJobPage()));
+                          bool pressed = false;
+                          Map<String,dynamic> inputData = new Map<String,dynamic>();
+                          showDialog(
+                              context: context,
+                              barrierDismissible: true,
+                              builder: (context){
+                                return new AlertDialog(
+                                    title: new Text("New Job",style:new TextStyle(fontWeight:FontWeight.bold)),
+                                    content: new Column(
+                                        children: [
+                                          new TextField(
+                                              onChanged: (s){
+                                                inputData["jobTitle"] = s;
+                                              }
+                                          ),
+                                          new TextField(
+                                            onChanged: (s){
+                                              inputData["salary"] = double.parse(s);
+                                            },
+                                            inputFormatters: [new NumberInputFormatter()],
+                                          )
+                                        ]
+                                    ),
+                                    actions: [
+                                      new FlatButton(
+                                          child: new Text("Submit"),
+                                          onPressed: () async{
+                                            if(pressed){
+                                              return;
+                                            }
+                                            if(inputData.keys.length<2||inputData.containsValue("")||inputData.containsValue(null)){
+                                              Scaffold.of(context).removeCurrentSnackBar();
+                                              Scaffold.of(context).showSnackBar(new SnackBar(duration: new Duration(milliseconds:750),content:new Text("Please complete all fields")));
+                                              return;
+                                            }
+                                            if(jobsInfo.keys.map((s)=>s.toUpperCase()).contains(inputData["jobTitle"].toUpperCase())){
+                                              Scaffold.of(context).removeCurrentSnackBar();
+                                              Scaffold.of(context).showSnackBar(new SnackBar(duration: new Duration(milliseconds:750),content:new Text("Job already exists")));
+                                              return;
+                                            }
+                                            pressed = true;
+                                            inputData["shiftsWorked"] = 0;
+                                            inputData["moneyEarned"] = 0.0;
+                                            inputData["minutesWorked"] = 0;
+                                            inputData["scheduledShifts"] = 0;
+                                            jobsInfo[inputData["jobTitle"]] = inputData;
+                                            new Directory("$appDirectory/${inputData["jobTitle"]}")..createSync(recursive: true);
+                                            jobShiftData[inputData["jobTitle"]] = new Map<String,dynamic>();
+                                            jobsDataGetters[inputData["jobTitle"]] = new Map<String,PersistentData>();
+                                            inputData.remove("jobTitle");
+                                            await jobsInfoData.writeData(jobsInfo);
+                                            context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
+                                            Navigator.of(context).pop();
+                                          }
+                                      )
+                                    ]
+                                );
+                              }
+                          );
                         })))),childCount:1)
                     ),
                     new SliverPadding(
@@ -171,12 +287,6 @@ class NewJobPage extends StatefulWidget{
 class NewJobPageState extends State<NewJobPage>{
 
   bool clickedSubmit = false;
-
-  @override
-  void initState(){
-    super.initState();
-
-  }
 
   Map<String,dynamic> inputData = new Map<String,dynamic>();
 
@@ -273,6 +383,51 @@ class JobState extends State<Job>{
           child: new Column(
               children:[
                 new ListTile(
+                  onTap: (){
+                    bool pressed = false;
+                    showDialog(
+                        context: context,
+                        barrierDismissible: true,
+                        builder: (context){
+                          return new AlertDialog(
+                              title: new Text("New Shift",style:new TextStyle(fontWeight:FontWeight.bold)),
+                              content: new TextField(
+                                onChanged:(st){
+
+                                },
+                                decoration: new InputDecoration(
+                                    hintText: "Start Time"
+                                ),
+                              ),
+                              actions: [
+                                new FlatButton(
+                                    child: new Text("Submit"),
+                                    onPressed: () async{
+                                      if(pressed){
+                                        return;
+                                      }
+                                      pressed = true;
+                                      int startTime = currentTime.toUtc().millisecondsSinceEpoch;
+                                      int endTime = (currentTime.toUtc().millisecondsSinceEpoch+1000*60*2);
+                                      String shiftName = startTime.toString()+"-"+endTime.toString();
+                                      if(!jobShiftData[widget.jobTitle].keys.map((s)=>s.toUpperCase()).contains(shiftName.toUpperCase())){
+                                        jobShiftData[widget.jobTitle][shiftName] = {"startTime":startTime,"endTime":endTime};
+                                        jobsDataGetters[widget.jobTitle][shiftName] = new PersistentData("${widget.jobTitle}/${shiftName}.txt");
+                                        jobsDataGetters[widget.jobTitle][shiftName].writeData(jobShiftData[widget.jobTitle][shiftName]);
+                                        jobsInfo[widget.jobTitle]["scheduledShifts"]++;
+                                        jobsInfoData.writeData(jobsInfo);
+                                        this.setState((){});
+                                        Navigator.of(context).pop();
+                                      }else{
+                                        pressed = false;
+                                      }
+                                    }
+                                )
+                              ]
+                          );
+                        }
+                    );
+                  },
                   title: new Padding(padding:EdgeInsets.only(top:5.0),child:new Text(widget.jobTitle,style:new TextStyle(fontWeight: FontWeight.bold))),
                   subtitle: new Padding(padding:EdgeInsets.only(bottom:5.0),child:new Text("\$${new NumberFormat.compact().format(jobsInfo[widget.jobTitle]["salary"])}/hr • \$${new NumberFormat.compact().format(jobsInfo[widget.jobTitle]["moneyEarned"])} earned\n$hoursWorked hr${hoursWorked==1?"":"s"} $minutesWorked min${minutesWorked==1?"":"s"} worked")),
                   trailing: new IconButton(
@@ -383,6 +538,18 @@ class JobState extends State<Job>{
                               new Container(height:16.0,width:40.0,child:new FittedBox(fit:BoxFit.fitHeight,alignment: Alignment.centerRight,child:new Text((100*percentDone).floor().toStringAsFixed(0)+"%")))
                             ]
                         ),
+                        onTap: percentDone==1.0?(){
+                          int minutesWorked = new DateTime.fromMillisecondsSinceEpoch(endTime).difference(new DateTime.fromMillisecondsSinceEpoch(startTime)).inMinutes;
+                          jobsInfo[widget.jobTitle]["minutesWorked"]+=minutesWorked;
+                          jobsInfo[widget.jobTitle]["moneyEarned"]+=(jobsInfo[widget.jobTitle]["salary"]/60.0)*minutesWorked;
+                          jobsInfo[widget.jobTitle]["moneyEarned"] = double.parse(jobsInfo[widget.jobTitle]["moneyEarned"].toStringAsFixed(2));
+                          jobsInfo[widget.jobTitle]["scheduledShifts"]--;
+                          jobsInfoData.writeData(jobsInfo);
+                          jobShiftData[widget.jobTitle].remove(shiftTitle);
+                          jobsDataGetters[widget.jobTitle].remove(shiftTitle);
+                          new File("$appDirectory/${widget.jobTitle}/$shiftTitle.txt").delete(recursive: true);
+                          this.setState((){});
+                        }:null,
                         trailing:isDeleting?new IconButton(
                             icon:new Icon(Icons.delete),
                             onPressed:(){
