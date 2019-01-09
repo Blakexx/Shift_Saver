@@ -3,6 +3,9 @@ import "package:path_provider/path_provider.dart";
 import "dart:convert";
 import "dart:io";
 import "dart:async";
+import "dart:math";
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:intl/intl.dart';
 
 PersistentData jobsInfoData = new PersistentData("jobsList.txt");
 
@@ -98,7 +101,7 @@ class AppState extends State<App>{
   @override
   Widget build(BuildContext context){
     List jobs = jobsInfo.keys.toList();
-    int jobsCount = jobsInfo.keys.length;
+    int jobsCount = jobs.length;
     return new MaterialApp(
       home: new Builder(
         builder: (context)=>new Scaffold(
@@ -125,11 +128,16 @@ class AppState extends State<App>{
                       )
                     ]
                 ),
-                new SliverList(
-                  delegate: new SliverChildBuilderDelegate(
-                      (context,i)=>new Job(jobs[i]),
-                      childCount: jobsCount
+                new SliverPadding(
+                  sliver: new SliverStaggeredGrid.countBuilder(
+                    crossAxisCount: (MediaQuery.of(context).size.width/500.0).ceil(),
+                    mainAxisSpacing: 0.0,
+                    crossAxisSpacing: 0.0,
+                    itemCount:jobsCount,
+                    itemBuilder: (BuildContext context, int i)=>new Job(jobs[i]),
+                    staggeredTileBuilder:(i)=>new StaggeredTile.fit(1),
                   ),
+                  padding:EdgeInsets.only(top:5.0,right:5.0,left:5.0)
                 )
               ]
           )
@@ -211,6 +219,8 @@ class Job extends StatefulWidget{
 class JobState extends State<Job>{
   @override
   Widget build(BuildContext context){
+    List shiftList = new List.from(jobShiftData[widget.jobTitle].keys.toList());
+    shiftList.sort((o1,o2)=>(jobShiftData[widget.jobTitle][o2]["startTime"]-jobShiftData[widget.jobTitle][o1]["startTime"]) as int);
     return new Center(
         child: new Card(
           child: new Column(
@@ -255,7 +265,9 @@ class JobState extends State<Job>{
                   trailing: new IconButton(
                       icon: new Icon(Icons.add_circle_outline),
                       onPressed: (){
-                        String shiftName = "";
+                        int startTime = currentTime.toUtc().millisecondsSinceEpoch;
+                        int endTime = (currentTime.toUtc().millisecondsSinceEpoch+1000*60*20);
+                        String shiftName = startTime.toString()+"-"+endTime.toString();
                         bool pressed = false;
                         showDialog(
                             context: context,
@@ -263,13 +275,12 @@ class JobState extends State<Job>{
                             builder: (context){
                               return new AlertDialog(
                                   title: new Text("New Shift",style:new TextStyle(fontWeight:FontWeight.bold)),
-                                  content:new TextField(
+                                  content: new TextField(
                                     onChanged:(st){
-                                      shiftName = st;
+
                                     },
                                     decoration: new InputDecoration(
-                                      labelText: "Shift Title",
-                                      contentPadding: EdgeInsets.only(right:8.0,bottom:8.0)
+                                      hintText: "Start Time"
                                     ),
                                   ),
                                   actions: [
@@ -280,14 +291,16 @@ class JobState extends State<Job>{
                                             return;
                                           }
                                           pressed = true;
-                                          if(shiftName!=null&&shiftName.length>0&&jobShiftData[widget.jobTitle][shiftName]==null){
-                                            jobShiftData[widget.jobTitle][shiftName] = {"startTime":1,"endTime":100};
-                                            jobsDataGetters[widget.jobTitle][shiftName] = new PersistentData("${widget.jobTitle}/$shiftName.txt");
+                                          if(!jobShiftData[widget.jobTitle].keys.map((s)=>s.toUpperCase()).contains(shiftName.toUpperCase())){
+                                            jobShiftData[widget.jobTitle][shiftName] = {"startTime":startTime,"endTime":endTime};
+                                            jobsDataGetters[widget.jobTitle][shiftName] = new PersistentData("${widget.jobTitle}/${shiftName}.txt");
                                             jobsDataGetters[widget.jobTitle][shiftName].writeData(jobShiftData[widget.jobTitle][shiftName]);
                                             jobsInfo[widget.jobTitle]["scheduledShifts"]++;
                                             jobsInfoData.writeData(jobsInfo);
                                             this.setState((){});
                                             Navigator.of(context).pop();
+                                          }else{
+                                            pressed = false;
                                           }
                                         }
                                     )
@@ -298,28 +311,48 @@ class JobState extends State<Job>{
                       }
                   )
                 ),
+                shiftList.length>0?new Divider(height:4.0):new Container(),
                 new Column(
-                  children:jobShiftData[widget.jobTitle].keys.map((shiftTitle)=>new ListTile(
-                      leading: isDeleting?new IconButton(
-                          icon:new Icon(Icons.delete),
-                          onPressed:(){
-                            jobShiftData[widget.jobTitle].remove(shiftTitle);
-                            jobsDataGetters[widget.jobTitle].remove(shiftTitle);
-                            jobsInfo[widget.jobTitle]["scheduledShifts"]--;
-                            jobsInfoData.writeData(jobsInfo);
-                            new File("$appDirectory/${widget.jobTitle}/$shiftTitle.txt").delete(recursive: true);
-                            context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
-                          }
-                      ):null,
-                    title:new Text(shiftTitle),
-                    subtitle:new Text(jobShiftData[widget.jobTitle][shiftTitle]["startTime"].toString()+"-"+jobShiftData[widget.jobTitle][shiftTitle]["endTime"].toString())
-                  )).cast<Widget>().toList()
+                  children:shiftList.map((shiftTitle){
+                    int startTime = jobShiftData[widget.jobTitle][shiftTitle]["startTime"];
+                    int endTime = jobShiftData[widget.jobTitle][shiftTitle]["endTime"];
+                    String startString = getHourMin(startTime);
+                    String endString = getHourMin(endTime);
+                    double percentDone = (currentTime.millisecondsSinceEpoch-startTime)/(endTime-startTime);
+                    percentDone = max(0.0,min(percentDone,1.0));
+                    return new ListTile(
+                        leading: isDeleting?new IconButton(
+                            icon:new Icon(Icons.delete),
+                            onPressed:(){
+                              jobShiftData[widget.jobTitle].remove(shiftTitle);
+                              jobsDataGetters[widget.jobTitle].remove(shiftTitle);
+                              jobsInfo[widget.jobTitle]["scheduledShifts"]--;
+                              jobsInfoData.writeData(jobsInfo);
+                              new File("$appDirectory/${widget.jobTitle}/$shiftTitle.txt").delete(recursive: true);
+                              context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
+                            }
+                        ):null,
+                        title:new Text(startString+" - "+endString),
+                        subtitle:new Row(
+                            children: [
+                              new Expanded(child:new Container(height:5.0,child:new LinearProgressIndicator(value:percentDone))),
+                              new Text(" "+(percentDone*100).round().toStringAsFixed(0)+"%")
+                            ]
+                        )
+                    );
+                  }).cast<Widget>().toList()
                 )
               ]
-          ),
+          )
         )
     );
   }
+}
+
+String getHourMin(int mill){
+  NumberFormat twoDigits = new NumberFormat("00", "en_US");
+  DateTime time = new DateTime.fromMillisecondsSinceEpoch(mill);
+  return twoDigits.format(time.hour%12==0?12:time.hour%12)+":"+twoDigits.format(time.minute)+" ${time.hour>=12?"PM":"AM"}";
 }
 
 class PersistentData{
@@ -332,7 +365,7 @@ class PersistentData{
     return new File("$appDirectory/$name").create(recursive: true);
   }
 
-  dynamic readData() async{
+  Future<dynamic> readData() async{
     try{
       File file = await _localFile;
       return json.decode(await file.readAsString());
