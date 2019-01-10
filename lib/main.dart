@@ -412,6 +412,16 @@ class NumberInputFormatter extends TextInputFormatter{
     if((newValue.text.replaceAll(new RegExp("[^\.]"), "").length)>1){
       return oldValue;
     }
+    if(newValue.text.length==0||newValue.text=="."){
+      return newValue.copyWith(text:"");
+    }
+    if(double.parse(newValue.text)>1000000000000){
+      return oldValue;
+    }
+    List l = newValue.text.split(".");
+    if(l.length==2&&l[1].length>2){
+      return oldValue;
+    }
     return newValue.copyWith(text:newValue.text.replaceAll(new RegExp("[^0-9\.]"), ""));
   }
 }
