@@ -209,7 +209,8 @@ class NewJobPageState extends State<NewJobPage>{
           new TextField(
             onChanged: (s){
               inputData["jobTitle"] = s;
-            }
+            },
+            inputFormatters: [new WhitelistingTextInputFormatter(new RegExp("[A-Za-z0-9\.,<>:()*&^%\$#@!\\[\\]{};\"\'?\\\\|`~\\-_+=]"))],
           ),
           new TextField(
             onChanged: (s){
