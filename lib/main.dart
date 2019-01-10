@@ -349,7 +349,7 @@ class NewJobPageState extends State<NewJobPage>{
 class NumberInputFormatter extends TextInputFormatter{
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue){
-    if(oldValue.text.contains(".")&&(oldValue.text.replaceAll(new RegExp("[^\.]"), "").length<newValue.text.replaceAll(new RegExp("[^\.]"), "").length)){
+    if((newValue.text.replaceAll(new RegExp("[^\.]"), "").length)>1){
       return oldValue;
     }
     return newValue.copyWith(text:newValue.text.replaceAll(new RegExp("[^0-9\.]"), ""));
