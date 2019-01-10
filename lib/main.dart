@@ -293,7 +293,7 @@ class NewShiftPageState extends State<NewShiftPage>{
               children: [
                 new Container(height:16.0),
                 new Center(
-                  child: new Text("Shift Time",style: new TextStyle(fontSize:20.0,fontWeight: FontWeight.bold))
+                  child: new Text("Shift Times",style: new TextStyle(fontSize:20.0,fontWeight: FontWeight.bold))
                 ),
                 new Container(height:5.0),
                 new ListTile(
@@ -326,9 +326,9 @@ class NewShiftPageState extends State<NewShiftPage>{
                           initialTime: new TimeOfDay(hour:startDate.hour,minute:startDate.minute)
                       );
                       if(selectedTime!=null){
-                        if(selectedTime.hour*60+selectedTime.minute>=endDate.hour*60+endDate.minute){
+                        if(startDate.year==endDate.year&&startDate.month==endDate.month&&startDate.day==endDate.day&&selectedTime.hour*60+selectedTime.minute>=endDate.hour*60+endDate.minute){
                           Scaffold.of(context).removeCurrentSnackBar();
-                          Scaffold.of(context).showSnackBar(new SnackBar(duration:new Duration(milliseconds: 750),content:new Text("Invalid time")));
+                          Scaffold.of(context).showSnackBar(new SnackBar(duration:new Duration(milliseconds: 750),content:new Text("Time out of range")));
                           return;
                         }
                         startTime = new DateTime(startDate.year,startDate.month,startDate.day,selectedTime.hour,selectedTime.minute).millisecondsSinceEpoch;
@@ -363,9 +363,9 @@ class NewShiftPageState extends State<NewShiftPage>{
                           initialTime: new TimeOfDay(hour:endDate.hour,minute:endDate.minute)
                       );
                       if(selectedTime!=null){
-                        if(selectedTime.hour*60+selectedTime.minute<=startDate.hour*60+startDate.minute){
+                        if(startDate.year==endDate.year&&startDate.month==endDate.month&&startDate.day==endDate.day&&selectedTime.hour*60+selectedTime.minute<=startDate.hour*60+startDate.minute){
                           Scaffold.of(context).removeCurrentSnackBar();
-                          Scaffold.of(context).showSnackBar(new SnackBar(duration:new Duration(milliseconds: 750),content:new Text("Invalid time")));
+                          Scaffold.of(context).showSnackBar(new SnackBar(duration:new Duration(milliseconds: 750),content:new Text("Time out of range")));
                           return;
                         }
                         endTime = new DateTime(endDate.year,endDate.month,endDate.day,selectedTime.hour,selectedTime.minute).millisecondsSinceEpoch;
