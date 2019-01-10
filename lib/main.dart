@@ -283,10 +283,10 @@ class NewShiftPageState extends State<NewShiftPage>{
   @override
   Widget build(BuildContext context){
     if(startTime<currentTime.millisecondsSinceEpoch){
-      startTime = new DateTime.now().millisecondsSinceEpoch;
+      startTime = currentTime.millisecondsSinceEpoch;
     }
-    if(endTime<startTime){
-      endTime = new DateTime(startTime).add(new Duration(hours:4)).millisecondsSinceEpoch;
+    if(endTime<=startTime){
+      endTime = new DateTime.fromMillisecondsSinceEpoch(startTime).add(new Duration(minutes:1)).millisecondsSinceEpoch;
     }
     return new Scaffold(
         appBar: new AppBar(title:new Text("New Shift"),backgroundColor: new Color.fromRGBO(65,65,65,1.0)),
@@ -314,7 +314,7 @@ class NewShiftPageState extends State<NewShiftPage>{
                         selectedDate = new DateTime(selectedDate.year,selectedDate.month,selectedDate.day);
                         DateTime startDate = new DateTime.fromMillisecondsSinceEpoch(startTime);
                         startTime = selectedDate.millisecondsSinceEpoch + (startDate.hour*3600+startDate.minute*60+startDate.second)*1000;
-                        if(endTime<startTime){
+                        if(startTime>=endTime){
                           endTime = new DateTime.fromMillisecondsSinceEpoch(startTime).add(new Duration(hours:4)).millisecondsSinceEpoch;
                         }
                         this.setState((){});
@@ -328,7 +328,7 @@ class NewShiftPageState extends State<NewShiftPage>{
                           initialTime: new TimeOfDay(hour:startDate.hour,minute:startDate.minute)
                       );
                       if(selectedTime!=null){
-                        if(selectedTime.hour*60+selectedTime.minute>endDate.hour*60+endDate.minute){
+                        if(selectedTime.hour*60+selectedTime.minute>=endDate.hour*60+endDate.minute){
                           Scaffold.of(context).removeCurrentSnackBar();
                           Scaffold.of(context).showSnackBar(new SnackBar(duration:new Duration(milliseconds: 750),content:new Text("Invalid time")));
                           return;
@@ -365,7 +365,7 @@ class NewShiftPageState extends State<NewShiftPage>{
                           initialTime: new TimeOfDay(hour:endDate.hour,minute:endDate.minute)
                       );
                       if(selectedTime!=null){
-                        if(selectedTime.hour*60+selectedTime.minute<startDate.hour*60+startDate.minute){
+                        if(selectedTime.hour*60+selectedTime.minute<=startDate.hour*60+startDate.minute){
                           Scaffold.of(context).removeCurrentSnackBar();
                           Scaffold.of(context).showSnackBar(new SnackBar(duration:new Duration(milliseconds: 750),content:new Text("Invalid time")));
                           return;
@@ -534,23 +534,43 @@ class JobState extends State<Job>{
                   )
                 ),
                 shiftList.length>0?new Divider(height:4.0):new Container(),
+                shiftList.length>0?new Container(height:4.0):new Container(),
                 new Column(
                   children:shiftList.map((shiftTitle){
                     int startTime = jobShiftData[widget.jobTitle][shiftTitle]["startTime"];
                     int endTime = jobShiftData[widget.jobTitle][shiftTitle]["endTime"];
+                    DateTime startDate = new DateTime.fromMillisecondsSinceEpoch(startTime);
+                    DateTime endDate = new DateTime.fromMillisecondsSinceEpoch(endTime);
                     String startString = timeFormat.format(new DateTime.fromMillisecondsSinceEpoch(startTime));
                     String endString = timeFormat.format(new DateTime.fromMillisecondsSinceEpoch(endTime));
                     double percentDone = (currentTime.millisecondsSinceEpoch-startTime)/(endTime-startTime);
                     percentDone = max(0.0,min(percentDone,1.0));
                     int mins = new DateTime.fromMillisecondsSinceEpoch(max(startTime,min(endTime,currentTime.millisecondsSinceEpoch))).difference(new DateTime.fromMillisecondsSinceEpoch(startTime)).inMinutes;
+                    String formattedDates;
+                    DateTime t1 = new DateTime(startDate.year,startDate.month,startDate.day);
+                    DateTime t2 = new DateTime(endDate.year,endDate.month,endDate.day);
+                    if(t1.isAtSameMomentAs(t2)){
+                      formattedDates = new DateFormat("MMM d").format(t1);
+                    }else if(t1.year==t2.year){
+                      formattedDates = new DateFormat("MMM d").format(t1) + " - " + new DateFormat("MMM d").format(t2);
+                    }else{
+                      formattedDates = new DateFormat("MMM d yyyy").format(t1) + " - " + new DateFormat("MMM d yyyy").format(t2);
+                    }
                     return new ListTile(
                         title:new Text(startString+" - "+endString),
-                        subtitle:new Row(
-                            children: [
-                              new Expanded(child:new Container(height:5.0,child:new LinearProgressIndicator(value:percentDone,valueColor: new AlwaysStoppedAnimation<Color>(percentDone==1.0?Colors.green:Colors.blue)))),
-                              new Container(width:5.0),
-                              new Container(height:16.0,width:40.0,child:new FittedBox(fit:BoxFit.fitHeight,alignment: Alignment.centerLeft,child:new Text((100*percentDone).floor().toStringAsFixed(0)+"%")))
-                            ]
+                        subtitle:new Column(
+                          children:[
+                            new Container(height:2.0),
+                            formattedDates!=null?new Align(child:new Text(formattedDates),alignment: Alignment.centerLeft):new Container(height:0.0,width:0.0),
+                            new Container(height:2.0),
+                            new Row(
+                                children: [
+                                  new Expanded(child:new Container(height:5.0,child:new LinearProgressIndicator(value:percentDone,valueColor: new AlwaysStoppedAnimation<Color>(percentDone==1.0?Colors.green:Colors.blue)))),
+                                  new Container(width:5.0),
+                                  new Container(height:16.0,width:40.0,child:new FittedBox(fit:BoxFit.fitHeight,alignment: Alignment.centerLeft,child:new Text((100*percentDone).floor().toStringAsFixed(0)+"%")))
+                                ]
+                            )
+                          ]
                         ),
                         onTap: percentDone==1.0?(){
                           int minutesWorked = new DateTime.fromMillisecondsSinceEpoch(endTime).difference(new DateTime.fromMillisecondsSinceEpoch(startTime)).inMinutes;
@@ -637,7 +657,8 @@ class JobState extends State<Job>{
                         ):new Container(height:17.0,width:48.0,child:new Center(child:new FittedBox(fit:BoxFit.fitHeight,alignment: Alignment.centerRight,child:new Text("\$"+new NumberFormat.compact().format(((jobsInfo[widget.jobTitle]["salary"]/60.0)*mins))))))
                     );
                   }).cast<Widget>().toList()
-                )
+                ),
+                shiftList.length>0?new Container(height:4.0):new Container(),
               ]
           )
         )
