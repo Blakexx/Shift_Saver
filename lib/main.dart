@@ -274,10 +274,8 @@ class NewShiftPageState extends State<NewShiftPage>{
   @override
   void initState(){
     super.initState();
-    DateTime now = new DateTime.now();
-    now = now.subtract(new Duration(seconds: now.second,milliseconds: now.millisecond,microseconds: now.microsecond));
-    startTime = now.millisecondsSinceEpoch;
-    endTime = now.add(new Duration(hours:4)).millisecondsSinceEpoch;
+    startTime = currentTime.millisecondsSinceEpoch;
+    endTime = currentTime.add(new Duration(hours:4)).millisecondsSinceEpoch;
   }
 
   @override
