@@ -24,6 +24,10 @@ Timer timer;
 
 bool isDeleting = false;
 
+final dateFormat = DateFormat("EE, MMM d, yyyy");
+
+final timeFormat = DateFormat("h:mm a");
+
 void main() async{
   currentTime = new DateTime.now().toUtc();
   currentTime = currentTime.subtract(new Duration(seconds:currentTime.second,milliseconds:currentTime.millisecond,microseconds:currentTime.microsecond));
@@ -130,126 +134,32 @@ class AppState extends State<App>{
                         delegate: new SliverChildBuilderDelegate((context,i)=>new Padding(padding:EdgeInsets.only(left:5.0,right:5.0,top:5.0),child:new Card(child:new Container(color:Colors.grey[300],child:new ListTile(title:new Text("New Job",style:new TextStyle(fontWeight: FontWeight.bold)),trailing:new IconButton(
                           icon: new Icon(Icons.add_circle_outline),
                           onPressed:(){
-                            bool pressed = false;
-                            Map<String,dynamic> inputData = new Map<String,dynamic>();
-                            showDialog(
-                                context: context,
-                                barrierDismissible: true,
-                                builder: (context){
-                                  return new AlertDialog(
-                                      title: new Text("New Job",style:new TextStyle(fontWeight:FontWeight.bold)),
-                                      content: new Column(
-                                          children: [
-                                            new TextField(
-                                                onChanged: (s){
-                                                  inputData["jobTitle"] = s;
-                                                }
-                                            ),
-                                            new TextField(
-                                              onChanged: (s){
-                                                inputData["salary"] = double.parse(s);
-                                              },
-                                              inputFormatters: [new NumberInputFormatter()],
-                                            )
-                                          ]
-                                      ),
-                                      actions: [
-                                        new FlatButton(
-                                            child: new Text("Submit"),
-                                            onPressed: () async{
-                                              if(pressed){
-                                                return;
-                                              }
-                                              if(inputData.keys.length<2||inputData.containsValue("")||inputData.containsValue(null)){
-                                                Scaffold.of(context).removeCurrentSnackBar();
-                                                Scaffold.of(context).showSnackBar(new SnackBar(duration: new Duration(milliseconds:750),content:new Text("Please complete all fields")));
-                                                return;
-                                              }
-                                              if(jobsInfo.keys.map((s)=>s.toUpperCase()).contains(inputData["jobTitle"].toUpperCase())){
-                                                Scaffold.of(context).removeCurrentSnackBar();
-                                                Scaffold.of(context).showSnackBar(new SnackBar(duration: new Duration(milliseconds:750),content:new Text("Job already exists")));
-                                                return;
-                                              }
-                                              pressed = true;
-                                              inputData["shiftsWorked"] = 0;
-                                              inputData["moneyEarned"] = 0.0;
-                                              inputData["minutesWorked"] = 0;
-                                              inputData["scheduledShifts"] = 0;
-                                              jobsInfo[inputData["jobTitle"]] = inputData;
-                                              new Directory("$appDirectory/${inputData["jobTitle"]}")..createSync(recursive: true);
-                                              jobShiftData[inputData["jobTitle"]] = new Map<String,dynamic>();
-                                              jobsDataGetters[inputData["jobTitle"]] = new Map<String,PersistentData>();
-                                              inputData.remove("jobTitle");
-                                              await jobsInfoData.writeData(jobsInfo);
-                                              context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
-                                              Navigator.of(context).pop();
-                                            }
-                                        )
-                                      ]
-                                  );
-                                }
-                            );
+                            Navigator.push(context,new PageRouteBuilder(
+                              pageBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation){
+                                return new NewJobPage();
+                              },
+                              transitionDuration: new Duration(milliseconds: 150),
+                              transitionsBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+                                return new FadeTransition(
+                                    opacity: animation,
+                                    child: child
+                                );
+                              },
+                            ));
                           }
                         ),onTap:(){
-                          bool pressed = false;
-                          Map<String,dynamic> inputData = new Map<String,dynamic>();
-                          showDialog(
-                              context: context,
-                              barrierDismissible: true,
-                              builder: (context){
-                                return new AlertDialog(
-                                    title: new Text("New Job",style:new TextStyle(fontWeight:FontWeight.bold)),
-                                    content: new Column(
-                                        children: [
-                                          new TextField(
-                                              onChanged: (s){
-                                                inputData["jobTitle"] = s;
-                                              }
-                                          ),
-                                          new TextField(
-                                            onChanged: (s){
-                                              inputData["salary"] = double.parse(s);
-                                            },
-                                            inputFormatters: [new NumberInputFormatter()],
-                                          )
-                                        ]
-                                    ),
-                                    actions: [
-                                      new FlatButton(
-                                          child: new Text("Submit"),
-                                          onPressed: () async{
-                                            if(pressed){
-                                              return;
-                                            }
-                                            if(inputData.keys.length<2||inputData.containsValue("")||inputData.containsValue(null)){
-                                              Scaffold.of(context).removeCurrentSnackBar();
-                                              Scaffold.of(context).showSnackBar(new SnackBar(duration: new Duration(milliseconds:750),content:new Text("Please complete all fields")));
-                                              return;
-                                            }
-                                            if(jobsInfo.keys.map((s)=>s.toUpperCase()).contains(inputData["jobTitle"].toUpperCase())){
-                                              Scaffold.of(context).removeCurrentSnackBar();
-                                              Scaffold.of(context).showSnackBar(new SnackBar(duration: new Duration(milliseconds:750),content:new Text("Job already exists")));
-                                              return;
-                                            }
-                                            pressed = true;
-                                            inputData["shiftsWorked"] = 0;
-                                            inputData["moneyEarned"] = 0.0;
-                                            inputData["minutesWorked"] = 0;
-                                            inputData["scheduledShifts"] = 0;
-                                            jobsInfo[inputData["jobTitle"]] = inputData;
-                                            new Directory("$appDirectory/${inputData["jobTitle"]}")..createSync(recursive: true);
-                                            jobShiftData[inputData["jobTitle"]] = new Map<String,dynamic>();
-                                            jobsDataGetters[inputData["jobTitle"]] = new Map<String,PersistentData>();
-                                            inputData.remove("jobTitle");
-                                            await jobsInfoData.writeData(jobsInfo);
-                                            context.ancestorStateOfType(new TypeMatcher<AppState>()).setState((){});
-                                            Navigator.of(context).pop();
-                                          }
-                                      )
-                                    ]
-                                );
-                              }
-                          );
+                          Navigator.push(context,new PageRouteBuilder(
+                            pageBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation){
+                              return new NewJobPage();
+                            },
+                            transitionDuration: new Duration(milliseconds: 150),
+                            transitionsBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+                              return new FadeTransition(
+                                  opacity: animation,
+                                  child: child
+                              );
+                            },
+                          ));
                         })))),childCount:1)
                     ),
                     new SliverPadding(
@@ -346,6 +256,157 @@ class NewJobPageState extends State<NewJobPage>{
   }
 }
 
+class NewShiftPage extends StatefulWidget{
+  final String jobTitle;
+  NewShiftPage(this.jobTitle);
+  @override
+  NewShiftPageState createState() => new NewShiftPageState();
+}
+
+class NewShiftPageState extends State<NewShiftPage>{
+
+  bool clickedSubmit = false;
+
+  int startTime;
+
+  int endTime;
+
+  @override
+  void initState(){
+    super.initState();
+    DateTime now = new DateTime.now();
+    now = now.subtract(new Duration(seconds: now.second,milliseconds: now.millisecond,microseconds: now.microsecond));
+    startTime = now.millisecondsSinceEpoch;
+    endTime = now.add(new Duration(hours:4)).millisecondsSinceEpoch;
+  }
+
+  @override
+  Widget build(BuildContext context){
+    if(startTime<currentTime.millisecondsSinceEpoch){
+      startTime = new DateTime.now().millisecondsSinceEpoch;
+    }
+    if(endTime<startTime){
+      endTime = new DateTime(startTime).add(new Duration(hours:4)).millisecondsSinceEpoch;
+    }
+    return new Scaffold(
+        appBar: new AppBar(title:new Text("New Shift"),backgroundColor: new Color.fromRGBO(65,65,65,1.0)),
+        body: new Builder(
+          builder: (context)=>new ListView(
+              children: [
+                new Container(height:16.0),
+                new Center(
+                  child: new Text("Shift Time",style: new TextStyle(fontSize:20.0,fontWeight: FontWeight.bold))
+                ),
+                new Container(height:5.0),
+                new ListTile(
+                    title: new Text(dateFormat.format(new DateTime.fromMillisecondsSinceEpoch(startTime))),
+                    subtitle: new Text("Start Time"),
+                    onTap:() async{
+                      DateTime now = new DateTime.now();
+                      now = new DateTime(now.year,now.month,now.day);
+                      DateTime selectedDate = (await showDatePicker(
+                          context: context,
+                          initialDate: new DateTime.fromMillisecondsSinceEpoch(startTime),
+                          firstDate: now,
+                          lastDate: new DateTime(3000)
+                      ));
+                      if(selectedDate!=null){
+                        selectedDate = new DateTime(selectedDate.year,selectedDate.month,selectedDate.day);
+                        DateTime startDate = new DateTime.fromMillisecondsSinceEpoch(startTime);
+                        startTime = selectedDate.millisecondsSinceEpoch + (startDate.hour*3600+startDate.minute*60+startDate.second)*1000;
+                        if(endTime<startTime){
+                          endTime = new DateTime.fromMillisecondsSinceEpoch(startTime).add(new Duration(hours:4)).millisecondsSinceEpoch;
+                        }
+                        this.setState((){});
+                      }
+                    },
+                    trailing: new OutlineButton(child: new Text(timeFormat.format(new DateTime.fromMillisecondsSinceEpoch(startTime))), onPressed: () async{
+                      DateTime startDate = new DateTime.fromMillisecondsSinceEpoch(startTime);
+                      DateTime endDate = new DateTime.fromMillisecondsSinceEpoch(endTime);
+                      TimeOfDay selectedTime = await showTimePicker(
+                          context: context,
+                          initialTime: new TimeOfDay(hour:startDate.hour,minute:startDate.minute)
+                      );
+                      if(selectedTime!=null){
+                        if(selectedTime.hour*60+selectedTime.minute>endDate.hour*60+endDate.minute){
+                          Scaffold.of(context).removeCurrentSnackBar();
+                          Scaffold.of(context).showSnackBar(new SnackBar(duration:new Duration(milliseconds: 750),content:new Text("Invalid time")));
+                          return;
+                        }
+                        startTime = new DateTime(startDate.year,startDate.month,startDate.day,selectedTime.hour,selectedTime.minute).millisecondsSinceEpoch;
+                        this.setState((){});
+                      }
+                    })
+                ),
+                new ListTile(
+                    title: new Text(dateFormat.format(new DateTime.fromMillisecondsSinceEpoch(endTime))),
+                    subtitle: new Text("End Time"),
+                    onTap:() async{
+                      DateTime min = new DateTime.fromMillisecondsSinceEpoch(startTime);
+                      min = new DateTime(min.year,min.month,min.day);
+                      DateTime selectedDate = (await showDatePicker(
+                          context: context,
+                          initialDate: new DateTime.fromMillisecondsSinceEpoch(endTime),
+                          firstDate: min,
+                          lastDate: new DateTime(3000)
+                      ));
+                      if(selectedDate!=null){
+                        selectedDate = new DateTime(selectedDate.year,selectedDate.month,selectedDate.day);
+                        DateTime endDate = new DateTime.fromMillisecondsSinceEpoch(endTime);
+                        endTime = selectedDate.millisecondsSinceEpoch + (endDate.hour*3600+endDate.minute*60+endDate.second)*1000;
+                        this.setState((){});
+                      }
+                    },
+                    trailing: new OutlineButton(child: new Text(timeFormat.format(new DateTime.fromMillisecondsSinceEpoch(endTime))), onPressed: () async{
+                      DateTime startDate = new DateTime.fromMillisecondsSinceEpoch(startTime);
+                      DateTime endDate = new DateTime.fromMillisecondsSinceEpoch(endTime);
+                      TimeOfDay selectedTime = await showTimePicker(
+                          context: context,
+                          initialTime: new TimeOfDay(hour:endDate.hour,minute:endDate.minute)
+                      );
+                      if(selectedTime!=null){
+                        if(selectedTime.hour*60+selectedTime.minute<startDate.hour*60+startDate.minute){
+                          Scaffold.of(context).removeCurrentSnackBar();
+                          Scaffold.of(context).showSnackBar(new SnackBar(duration:new Duration(milliseconds: 750),content:new Text("Invalid time")));
+                          return;
+                        }
+                        endTime = new DateTime(endDate.year,endDate.month,endDate.day,selectedTime.hour,selectedTime.minute).millisecondsSinceEpoch;
+                        this.setState((){});
+                      }
+                    })
+                ),
+                new Builder(
+                    builder: (context)=>new RaisedButton(
+                        onPressed: () async{
+                          if(clickedSubmit){
+                            return;
+                          }
+                          clickedSubmit = true;
+                          String shiftName = startTime.toString()+"-"+endTime.toString();
+                          if(!jobShiftData[widget.jobTitle].keys.map((s)=>s.toUpperCase()).contains(shiftName.toUpperCase())){
+                            jobShiftData[widget.jobTitle][shiftName] = {"startTime":startTime,"endTime":endTime};
+                            jobsDataGetters[widget.jobTitle][shiftName] = new PersistentData("${widget.jobTitle}/${shiftName}.txt");
+                            jobsDataGetters[widget.jobTitle][shiftName].writeData(jobShiftData[widget.jobTitle][shiftName]);
+                            jobsInfo[widget.jobTitle]["scheduledShifts"]++;
+                            jobsInfoData.writeData(jobsInfo);
+                            this.setState((){});
+                            Navigator.of(context).pop();
+                          }else{
+                            Scaffold.of(context).removeCurrentSnackBar();
+                            Scaffold.of(context).showSnackBar(new SnackBar(duration:new Duration(milliseconds: 750),content:new Text("Duplicate shift")));
+                            clickedSubmit = false;
+                          }
+                        },
+                        child: new Text("Submit")
+                    )
+                )
+              ]
+          )
+        )
+    );
+  }
+}
+
 class NumberInputFormatter extends TextInputFormatter{
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue){
@@ -353,6 +414,19 @@ class NumberInputFormatter extends TextInputFormatter{
       return oldValue;
     }
     return newValue.copyWith(text:newValue.text.replaceAll(new RegExp("[^0-9\.]"), ""));
+  }
+}
+
+class DateTimeInputFormatter extends TextInputFormatter{
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue){
+    bool isValid = false;
+    try{
+      dateFormat.parse(newValue.text);
+    }catch(e){
+      return oldValue;
+    }
+    return newValue;
   }
 }
 
@@ -384,49 +458,18 @@ class JobState extends State<Job>{
               children:[
                 new ListTile(
                   onTap: (){
-                    bool pressed = false;
-                    showDialog(
-                        context: context,
-                        barrierDismissible: true,
-                        builder: (context){
-                          return new AlertDialog(
-                              title: new Text("New Shift",style:new TextStyle(fontWeight:FontWeight.bold)),
-                              content: new TextField(
-                                onChanged:(st){
-
-                                },
-                                decoration: new InputDecoration(
-                                    hintText: "Start Time"
-                                ),
-                              ),
-                              actions: [
-                                new FlatButton(
-                                    child: new Text("Submit"),
-                                    onPressed: () async{
-                                      if(pressed){
-                                        return;
-                                      }
-                                      pressed = true;
-                                      int startTime = currentTime.toUtc().millisecondsSinceEpoch;
-                                      int endTime = (currentTime.toUtc().millisecondsSinceEpoch+1000*60*2);
-                                      String shiftName = startTime.toString()+"-"+endTime.toString();
-                                      if(!jobShiftData[widget.jobTitle].keys.map((s)=>s.toUpperCase()).contains(shiftName.toUpperCase())){
-                                        jobShiftData[widget.jobTitle][shiftName] = {"startTime":startTime,"endTime":endTime};
-                                        jobsDataGetters[widget.jobTitle][shiftName] = new PersistentData("${widget.jobTitle}/${shiftName}.txt");
-                                        jobsDataGetters[widget.jobTitle][shiftName].writeData(jobShiftData[widget.jobTitle][shiftName]);
-                                        jobsInfo[widget.jobTitle]["scheduledShifts"]++;
-                                        jobsInfoData.writeData(jobsInfo);
-                                        this.setState((){});
-                                        Navigator.of(context).pop();
-                                      }else{
-                                        pressed = false;
-                                      }
-                                    }
-                                )
-                              ]
-                          );
-                        }
-                    );
+                    Navigator.push(context,new PageRouteBuilder(
+                      pageBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation){
+                        return new NewShiftPage(widget.jobTitle);
+                      },
+                      transitionDuration: new Duration(milliseconds: 150),
+                      transitionsBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+                        return new FadeTransition(
+                            opacity: animation,
+                            child: child
+                        );
+                      },
+                    ));
                   },
                   title: new Padding(padding:EdgeInsets.only(top:5.0),child:new Text(widget.jobTitle,style:new TextStyle(fontWeight: FontWeight.bold))),
                   subtitle: new Padding(padding:EdgeInsets.only(bottom:5.0),child:new Text("\$${new NumberFormat.compact().format(jobsInfo[widget.jobTitle]["salary"])}/hr • \$${new NumberFormat.compact().format(jobsInfo[widget.jobTitle]["moneyEarned"])} earned\n$hoursWorked hr${hoursWorked==1?"":"s"} $minutesWorked min${minutesWorked==1?"":"s"} worked")),
@@ -474,48 +517,18 @@ class JobState extends State<Job>{
                               }
                           );
                         }else{
-                          showDialog(
-                              context: context,
-                              barrierDismissible: true,
-                              builder: (context){
-                                return new AlertDialog(
-                                    title: new Text("New Shift",style:new TextStyle(fontWeight:FontWeight.bold)),
-                                    content: new TextField(
-                                      onChanged:(st){
-
-                                      },
-                                      decoration: new InputDecoration(
-                                          hintText: "Start Time"
-                                      ),
-                                    ),
-                                    actions: [
-                                      new FlatButton(
-                                          child: new Text("Submit"),
-                                          onPressed: () async{
-                                            if(pressed){
-                                              return;
-                                            }
-                                            pressed = true;
-                                            int startTime = currentTime.toUtc().millisecondsSinceEpoch;
-                                            int endTime = (currentTime.toUtc().millisecondsSinceEpoch+1000*60*2);
-                                            String shiftName = startTime.toString()+"-"+endTime.toString();
-                                            if(!jobShiftData[widget.jobTitle].keys.map((s)=>s.toUpperCase()).contains(shiftName.toUpperCase())){
-                                              jobShiftData[widget.jobTitle][shiftName] = {"startTime":startTime,"endTime":endTime};
-                                              jobsDataGetters[widget.jobTitle][shiftName] = new PersistentData("${widget.jobTitle}/${shiftName}.txt");
-                                              jobsDataGetters[widget.jobTitle][shiftName].writeData(jobShiftData[widget.jobTitle][shiftName]);
-                                              jobsInfo[widget.jobTitle]["scheduledShifts"]++;
-                                              jobsInfoData.writeData(jobsInfo);
-                                              this.setState((){});
-                                              Navigator.of(context).pop();
-                                            }else{
-                                              pressed = false;
-                                            }
-                                          }
-                                      )
-                                    ]
-                                );
-                              }
-                          );
+                          Navigator.push(context,new PageRouteBuilder(
+                            pageBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation){
+                              return new NewShiftPage(widget.jobTitle);
+                            },
+                            transitionDuration: new Duration(milliseconds: 150),
+                            transitionsBuilder: (BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation, Widget child) {
+                              return new FadeTransition(
+                                  opacity: animation,
+                                  child: child
+                              );
+                            },
+                          ));;
                         }
                       }
                   )
@@ -525,8 +538,8 @@ class JobState extends State<Job>{
                   children:shiftList.map((shiftTitle){
                     int startTime = jobShiftData[widget.jobTitle][shiftTitle]["startTime"];
                     int endTime = jobShiftData[widget.jobTitle][shiftTitle]["endTime"];
-                    String startString = getHourMin(startTime);
-                    String endString = getHourMin(endTime);
+                    String startString = timeFormat.format(new DateTime.fromMillisecondsSinceEpoch(startTime));
+                    String endString = timeFormat.format(new DateTime.fromMillisecondsSinceEpoch(endTime));
                     double percentDone = (currentTime.millisecondsSinceEpoch-startTime)/(endTime-startTime);
                     percentDone = max(0.0,min(percentDone,1.0));
                     int mins = new DateTime.fromMillisecondsSinceEpoch(max(startTime,min(endTime,currentTime.millisecondsSinceEpoch))).difference(new DateTime.fromMillisecondsSinceEpoch(startTime)).inMinutes;
@@ -535,7 +548,8 @@ class JobState extends State<Job>{
                         subtitle:new Row(
                             children: [
                               new Expanded(child:new Container(height:5.0,child:new LinearProgressIndicator(value:percentDone,valueColor: new AlwaysStoppedAnimation<Color>(percentDone==1.0?Colors.green:Colors.blue)))),
-                              new Container(height:16.0,width:40.0,child:new FittedBox(fit:BoxFit.fitHeight,alignment: Alignment.centerRight,child:new Text((100*percentDone).floor().toStringAsFixed(0)+"%")))
+                              new Container(width:5.0),
+                              new Container(height:16.0,width:40.0,child:new FittedBox(fit:BoxFit.fitHeight,alignment: Alignment.centerLeft,child:new Text((100*percentDone).floor().toStringAsFixed(0)+"%")))
                             ]
                         ),
                         onTap: percentDone==1.0?(){
@@ -629,12 +643,6 @@ class JobState extends State<Job>{
         )
     );
   }
-}
-
-String getHourMin(int mill){
-  NumberFormat twoDigits = new NumberFormat("00", "en_US");
-  DateTime time = new DateTime.fromMillisecondsSinceEpoch(mill);
-  return twoDigits.format(time.hour%12==0?12:time.hour%12)+":"+twoDigits.format(time.minute)+" ${time.hour>=12?"PM":"AM"}";
 }
 
 class PersistentData{
