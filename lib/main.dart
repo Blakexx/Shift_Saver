@@ -210,7 +210,7 @@ class NewJobPageState extends State<NewJobPage>{
             onChanged: (s){
               inputData["jobTitle"] = s;
             },
-            inputFormatters: [new WhitelistingTextInputFormatter(new RegExp("[A-Za-z0-9\.,<>:()*&^%\$#@!\\[\\]{};\"\'?\\\\|`~\\-_+=]"))],
+            inputFormatters: [new WhitelistingTextInputFormatter(new RegExp("[ A-Za-z0-9\.,<>:()*&^%\$#@!\\[\\]{};\"\'?\\\\|`~\\-_+=]"))],
           ),
           new TextField(
             onChanged: (s){
@@ -412,7 +412,10 @@ class NumberInputFormatter extends TextInputFormatter{
     if((newValue.text.replaceAll(new RegExp("[^\.]"), "").length)>1){
       return oldValue;
     }
-    if(newValue.text.length==0||newValue.text=="."){
+    if(newValue.text=="."&&oldValue.text.length==0){
+      return newValue.copyWith(text:".");
+    }
+    if(newValue.text.length==0||(newValue.text=="."&&oldValue.text.length>1)){
       return newValue.copyWith(text:"");
     }
     if(double.parse(newValue.text)>1000000000000){
