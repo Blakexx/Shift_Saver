@@ -225,7 +225,11 @@ class NewJobPageState extends State<NewJobPage>{
           new Padding(
             child: new TextField(
               onChanged: (s){
-                inputData["salary"] = double.parse(s);
+                try{
+                  inputData["salary"] = double.parse(s);
+                }catch(e){
+                  inputData["salary"] = null;
+                }
               },
               decoration: new InputDecoration(
                   border: new OutlineInputBorder(),
@@ -506,11 +510,8 @@ class NumberInputFormatter extends TextInputFormatter{
     if((newValue.text.replaceAll(new RegExp("[^\.]"), "").length)>1){
       return oldValue;
     }
-    if(newValue.text=="."&&oldValue.text.length==0){
-      return newValue.copyWith(text:".");
-    }
-    if(newValue.text.length==0||(newValue.text=="."&&oldValue.text.length>1)){
-      return newValue.copyWith(text:"");
+    if(newValue.text=="."||newValue.text==""){
+      return newValue;
     }
     if(double.parse(newValue.text)>1000000000000){
       return oldValue;
