@@ -206,18 +206,38 @@ class NewJobPageState extends State<NewJobPage>{
       appBar: new AppBar(title:new Text("New Job"),backgroundColor: new Color.fromRGBO(65,65,65,1.0)),
       body: new ListView(
         children: [
-          new TextField(
-            onChanged: (s){
-              inputData["jobTitle"] = s;
-            },
-            inputFormatters: [new WhitelistingTextInputFormatter(new RegExp("[ A-Za-z0-9\.,<>:()*&^%\$#@!\\[\\]{};\"\'?\\\\|`~\\-_+=]"))],
+          new Container(height:15.0),
+          new Padding(
+            child: new TextField(
+              onChanged: (s){
+                inputData["jobTitle"] = s;
+              },
+              decoration: new InputDecoration(
+                  border: new OutlineInputBorder(),
+                  labelText: "Job Title",
+                  contentPadding: EdgeInsets.only(top:13.0,bottom:13.0,right:7.0,left:7.0)
+              ),
+              inputFormatters: [new WhitelistingTextInputFormatter(new RegExp("[ A-Za-z0-9\.,<>:()*&^%\$#@!\\[\\]{};\"\'?\\\\|`~\\-_+=]"))],
+            ),
+            padding: EdgeInsets.only(right:10.0,left:10.0)
           ),
-          new TextField(
-            onChanged: (s){
-              inputData["salary"] = double.parse(s);
-            },
-            inputFormatters: [new NumberInputFormatter()],
+          new Container(height:20.0),
+          new Padding(
+            child: new TextField(
+              onChanged: (s){
+                inputData["salary"] = double.parse(s);
+              },
+              decoration: new InputDecoration(
+                  border: new OutlineInputBorder(),
+                  labelText: "Salary",
+                  prefixText: "\$",
+                  contentPadding: EdgeInsets.only(top:13.0,bottom:13.0,right:7.0,left:7.0)
+              ),
+              inputFormatters: [new NumberInputFormatter()],
+            ),
+            padding: EdgeInsets.only(right:10.0,left:10.0)
           ),
+          new Container(height:15.0),
           new Builder(
             builder: (context)=>new RaisedButton(
                 onPressed: () async{
@@ -271,6 +291,16 @@ class NewShiftPageState extends State<NewShiftPage>{
   int startTime;
 
   int endTime;
+
+  bool repeating = false;
+
+  bool hasBreak = false;
+
+  int breakStartTime;
+
+  int breakEndTime;
+
+  int daysPerRepeat;
 
   @override
   void initState(){
@@ -327,7 +357,7 @@ class NewShiftPageState extends State<NewShiftPage>{
                           initialTime: new TimeOfDay(hour:startDate.hour,minute:startDate.minute)
                       );
                       if(selectedTime!=null){
-                        if(startDate.year==endDate.year&&startDate.month==endDate.month&&startDate.day==endDate.day&&selectedTime.hour*60+selectedTime.minute>=endDate.hour*60+endDate.minute){
+                        if((startDate.year==endDate.year&&startDate.month==endDate.month&&startDate.day==endDate.day&&selectedTime.hour*60+selectedTime.minute>=endDate.hour*60+endDate.minute)||(startDate.year==currentTime.toLocal().year&&startDate.month==currentTime.toLocal().month&&startDate.day==currentTime.toLocal().day&&selectedTime.hour*60+selectedTime.minute<currentTime.toLocal().hour*60+currentTime.toLocal().minute)){
                           Scaffold.of(context).removeCurrentSnackBar();
                           Scaffold.of(context).showSnackBar(new SnackBar(duration:new Duration(milliseconds: 750),content:new Text("Time out of range")));
                           return;
@@ -374,6 +404,67 @@ class NewShiftPageState extends State<NewShiftPage>{
                       }
                     })
                 ),
+                new Container(height:10.0),
+                new Center(
+                    child: new Text("Options",style: new TextStyle(fontSize:20.0,fontWeight: FontWeight.bold))
+                ),
+                new Container(height:5.0),
+                new Divider(),
+                new ListTile(
+                  title: new Text("Repeating"),
+                  onTap: (){
+                    setState((){
+                      repeating = !repeating;
+                    });
+                  },
+                  trailing: new Switch(
+                    value: repeating,
+                    onChanged: (b){
+                      setState((){
+                        repeating = !repeating;
+                        daysPerRepeat = repeating?7:null;
+                      });
+                    }
+                  )
+                ),
+                repeating?new ListTile(
+                  title: new Text("Days per repeat"),
+                  trailing: new Container(
+                    width: 40.0,
+                    child: new TextField(
+                      decoration: new InputDecoration(
+                        border: new OutlineInputBorder(),
+                        contentPadding: EdgeInsets.only(right:8.0,left:8.0,top:8.0,bottom:8.0),
+                        hintText: "7"
+                      ),
+                      textAlign: TextAlign.center,
+                      inputFormatters: [new TwoDigitFormatter()],
+                    )
+                  )
+                ):new Container(height:0,width:0),
+                new Divider(),
+                new ListTile(
+                    title: new Text("Break/Lunch"),
+                    onTap: (){
+                      setState((){
+                        hasBreak = !hasBreak;
+                      });
+                    },
+                    trailing: new Switch(
+                        value: hasBreak,
+                        onChanged: (b){
+                          setState((){
+                            hasBreak = !hasBreak;
+                          });
+                        }
+                    )
+                ),
+                hasBreak?new Column(
+                  children: [
+                    new Text("Temp")
+                  ]
+                ):new Container(height:0.0,width:0.0),
+                new Divider(),
                 new Builder(
                     builder: (context)=>new RaisedButton(
                         onPressed: () async{
@@ -409,6 +500,9 @@ class NewShiftPageState extends State<NewShiftPage>{
 class NumberInputFormatter extends TextInputFormatter{
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue){
+    if(newValue.text.replaceAll(new RegExp("[0-9\.]"), "").length>0){
+      return oldValue;
+    }
     if((newValue.text.replaceAll(new RegExp("[^\.]"), "").length)>1){
       return oldValue;
     }
@@ -425,7 +519,17 @@ class NumberInputFormatter extends TextInputFormatter{
     if(l.length==2&&l[1].length>2){
       return oldValue;
     }
-    return newValue.copyWith(text:newValue.text.replaceAll(new RegExp("[^0-9\.]"), ""));
+    return newValue;
+  }
+}
+
+class TwoDigitFormatter extends TextInputFormatter{
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue){
+    if(newValue.text.length>2){
+      return oldValue;
+    }
+    return newValue.copyWith(text:newValue.text.replaceAll(new RegExp("[^0-9]"), ""));
   }
 }
 
